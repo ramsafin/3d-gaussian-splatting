@@ -29,20 +29,16 @@ Abstract: *Radiance Field methods have recently revolutionized novel-view synthe
   </div>
 </section>
 
-
-
 ## Funding and Acknowledgments
 
 This research was funded by the ERC Advanced grant FUNGRAPH No 788065. The authors are grateful to Adobe for generous donations, the OPAL infrastructure from Université Côte d’Azur and for the HPC resources from GENCI–IDRIS (Grant 2022-AD011013409). The authors thank the anonymous reviewers for their valuable feedback, P. Hedman and A. Tewari for proofreading earlier drafts also T. Müller, A. Yu and S. Fridovich-Keil for helping with the comparisons.
 
-## NEW FEATURES !
+## Features
 
-We have limited resources for maintaining and updating the code. However, we have added a few new features since the original release that are inspired by some of the excellent work many other researchers have been doing on 3DGS. We will be adding other features within the ability of our resources.
-
-**Update of October 2024**: We integrated [training speed acceleration](#training-speed-acceleration) and made it compatible with [depth regularization](#depth-regularization), [anti-aliasing](#anti-aliasing) and [exposure compensation](#exposure-compensation). We have enhanced the SIBR real time viewer by correcting bugs and adding features in the [Top View](#sibr-top-view) that allows visualization of input and user cameras.
+**Update of October 2024**: integrated [training speed acceleration](#training-speed-acceleration) and made it compatible with [depth regularization](#depth-regularization), [anti-aliasing](#anti-aliasing) and [exposure compensation](#exposure-compensation). We have enhanced the SIBR real time viewer by correcting bugs and adding features in the [Top View](#sibr-top-view) that allows visualization of input and user cameras.
 
 **Update of Spring 2024**:
-Orange Labs has kindly added [OpenXR support](#openxr-support) for VR viewing. 
+Orange Labs added [OpenXR support](#openxr-support) for VR viewing. 
 
 ## Step-by-step Tutorial
 
@@ -57,12 +53,12 @@ User [camenduru](https://github.com/camenduru) was kind enough to provide a Cola
 The repository contains submodules, thus please check it out with 
 ```shell
 # SSH
-git clone git@github.com:graphdeco-inria/gaussian-splatting.git --recursive
+git clone git@github.com:ramsafin/3d-gaussian-splatting.git --recursive
 ```
 or
 ```shell
 # HTTPS
-git clone https://github.com/graphdeco-inria/gaussian-splatting --recursive
+git clone https://github.com:ramsafin/3d-gaussian-splatting --recursive
 ```
 
 ## Overview
@@ -74,8 +70,6 @@ The codebase has 4 main components:
 - A script to help you turn your own images into optimization-ready SfM data sets
 
 The components have different requirements w.r.t. both hardware and software. They have been tested on Windows 10 and Ubuntu Linux 22.04. Instructions for setting up and running each of them are found in the sections below.
-
-
 
 
 ## Optimizer
@@ -96,37 +90,41 @@ The optimizer uses PyTorch and CUDA extensions in a Python environment to produc
 
 ### Setup
 
-#### Local Setup
+#### Local Setup (Windows)
+
+Install Visual Studio 2019 Professional ([link](https://learn.microsoft.com/en-us/visualstudio/releases/2019/history)).
+> Choose C++ development features.
+
+Install CUDA toolkit ([link](https://developer.nvidia.com/cuda-11-8-0-download-archive)).
+> Visual Studio MUST be detected by the CUDA installer!
 
 Our default, provided install method is based on Conda package and environment management:
 ```shell
 SET DISTUTILS_USE_SDK=1 # Windows only
-conda env create --file environment.yml
+conda env create --file env.yml
 conda activate gaussian_splatting
 ```
-Please note that this process assumes that you have CUDA SDK **11** installed, not **12**. For modifications, see below.
 
-Tip: Downloading packages and creating a new environment with Conda can require a significant amount of disk space. By default, Conda will use the main system hard drive. You can avoid this by specifying a different package download location and an environment on a different drive:
-
+Install PyTorch from wheels:
 ```shell
-conda config --add pkgs_dirs <Drive>/<pkg_path>
-conda env create --file environment.yml --prefix <Drive>/<env_path>/gaussian_splatting
-conda activate <Drive>/<env_path>/gaussian_splatting
+pip install torch==2.1.2 torchvision==0.16.2 --index-url https://download.pytorch.org/whl/cu118
 ```
 
-#### Modifications
+Please note that this process assumes that you have CUDA SDK **11.8* installed.
 
-If you can afford the disk space, we recommend using our environment files for setting up a training environment identical to ours. If you want to make modifications, please note that major version changes might affect the results of our method. However, our (limited) experiments suggest that the codebase works just fine inside a more up-to-date environment (Python 3.8, PyTorch 2.0.0, CUDA 12). Make sure to create an environment where PyTorch and its CUDA runtime version match and the installed CUDA SDK has no major version difference with PyTorch's CUDA version.
-
-#### Known Issues
-
-Some users experience problems building the submodules on Windows (```cl.exe: File not found``` or similar). Please consider the workaround for this problem from the FAQ.
+Build submodules (clone the repo recursively with submodules!):
+```shell
+pip install -U -e submodules/diff-gaussian-rasterization --no-build-isolation
+pip install -U -e submodules/simple-knn --no-build-isolation
+pip install -U -e submodules/fused-ssim --no-build-isolation
+```
 
 ### Running
 
 To run the optimizer, simply use
 
 ```shell
+$env:KMP_DUPLICATE_LIB_OK="TRUE" # optional
 python train.py -s <path to COLMAP or NeRF Synthetic dataset>
 ```
 
@@ -212,6 +210,7 @@ Note that similar to MipNeRF360, we target images at resolutions in the 1-1.6K p
 The MipNeRF360 scenes are hosted by the paper authors [here](https://jonbarron.info/mipnerf360/). You can find our SfM data sets for Tanks&Temples and Deep Blending [here](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/datasets/input/tandt_db.zip). If you do not provide an output model directory (```-m```), trained models are written to folders with randomized unique names inside the ```output``` directory. At this point, the trained models may be viewed with the real-time viewer (see further below).
 
 ### Evaluation
+
 By default, the trained models use all available images in the dataset. To train them while withholding a test set for evaluation, use the ```--eval``` flag. This way, you can render training/test sets and produce error metrics as follows:
 ```shell
 python train.py -s <path to COLMAP or NeRF Synthetic dataset> --eval # Train with train/test split
@@ -307,8 +306,8 @@ We provide two interactive viewers for our method: remote and real-time. Our vie
 - CUDA-ready GPU with Compute Capability 7.0+ (only for Real-Time Viewer)
 
 ### Software Requirements
-- Visual Studio or g++, **not Clang** (we used Visual Studio 2019 for Windows)
-- CUDA SDK 11, install *after* Visual Studio (we used 11.8)
+- Visual Studio 2019 (we used Visual Studio 2019 for Windows)
+- CUDA SDK 11.8
 - CMake (recent version, we used 3.24)
 - 7zip (only on Windows)
 
@@ -322,38 +321,17 @@ If you cloned with submodules (e.g., using ```--recursive```), the source code f
 CMake should take care of your dependencies.
 ```shell
 cd SIBR_viewers
-cmake -Bbuild .
-cmake --build build --target install --config RelWithDebInfo
+cmake -B build -G "Visual Studio 16 2019" -A x64 -T v142 -DCMAKE_POLICY_VERSION_MINIMUM="3.5" -DBUILD_TYPE=Release .
+cmake --build build --target install --config Release
 ```
 You may specify a different configuration, e.g. ```Debug``` if you need more control during development.
-
-#### Ubuntu 22.04
-You will need to install a few dependencies before running the project setup.
-```shell
-# Dependencies
-sudo apt install -y libglew-dev libassimp-dev libboost-all-dev libgtk-3-dev libopencv-dev libglfw3-dev libavdevice-dev libavcodec-dev libeigen3-dev libxxf86vm-dev libembree-dev
-# Project setup
-cd SIBR_viewers
-cmake -Bbuild . -DCMAKE_BUILD_TYPE=Release # add -G Ninja to build faster
-cmake --build build -j24 --target install
-``` 
-
-#### Ubuntu 20.04
-Backwards compatibility with Focal Fossa is not fully tested, but building SIBR with CMake should still work after invoking
-```shell
-git checkout fossa_compatibility
-```
 
 ### Navigation in SIBR Viewers
 The SIBR interface provides several methods of navigating the scene. By default, you will be started with an FPS navigator, which you can control with ```W, A, S, D, Q, E``` for camera translation and ```I, K, J, L, U, O``` for rotation. Alternatively, you may want to use a Trackball-style navigator (select from the floating menu). You can also snap to a camera from the data set with the ```Snap to``` button or find the closest camera with ```Snap to closest```. The floating menues also allow you to change the navigation speed. You can use the ```Scaling Modifier``` to control the size of the displayed Gaussians, or show the initial point cloud.
 
 ### Running the Network Viewer
 
-
-
 https://github.com/graphdeco-inria/gaussian-splatting/assets/40643808/90a2e4d3-cf2e-4633-b35f-bfe284e28ff7
-
-
 
 After extracting or installing the viewers, you may run the compiled ```SIBR_remoteGaussian_app[_config]``` app in ```<SIBR install dir>/bin```, e.g.: 
 ```shell
@@ -380,13 +358,7 @@ The network viewer allows you to connect to a running training process on the sa
 
 ### Running the Real-Time Viewer
 
-
-
-
 https://github.com/graphdeco-inria/gaussian-splatting/assets/40643808/0940547f-1d82-4c2f-a616-44eabbf0f816
-
-
-
 
 After extracting or installing the viewers, you may run the compiled ```SIBR_gaussianViewer_app[_config]``` app in ```<SIBR install dir>/bin```, e.g.: 
 ```shell
